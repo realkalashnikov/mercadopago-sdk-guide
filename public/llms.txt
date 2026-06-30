@@ -1,0 +1,116 @@
+# Mercado Pago SDK Integration Guide (v2)
+
+Information for LLMs, AI assistants, and developers integrating Mercado Pago v2 SDKs for Node.js and Python.
+
+## Core Concepts
+
+### SDK Versioning
+Always use SDK **v2**. The old v1 static methods are deprecated.
+- **Node.js (v2):** Uses `MercadoPagoConfig` client passed as an argument to API instances like `new Payment(mpClient)`.
+- **Python (v2):** Instantiated via `mercadopago.SDK(ACCESS_TOKEN)` returning an SDK instance containing resource handlers (e.g. `sdk.payment().create()`).
+
+### Credentials
+- **Public Key:** Used strictly in frontends to instantiate bricks or checkout fields securely.
+- **Access Token:** Used strictly in backends to authenticate API transactions. Keep in `.env` as `MERCADOPAGO_ACCESS_TOKEN`.
+
+---
+
+## Code Reference - Node.js (TypeScript)
+
+### 1. Initialization
+```typescript
+import { MercadoPagoConfig } from 'mercadopago';
+export const mpClient = new MercadoPagoConfig({
+  accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN || ''
+});
+```
+
+### 2. Checkout Pro Preference Creation
+```typescript
+import { Preference } from 'mercadopago';
+const preference = new Preference(mpClient);
+const response = await preference.create({
+  body: {
+    items: [{ id: '123', title: 'Product', quantity: 1, unit_price: 99.90, currency_id: 'BRL' }],
+    back_urls: { success: 'https://site.com/ok', failure: 'https://site.com/fail' },
+    auto_return: 'approved',
+    notification_url: 'https://api.com/webhook',
+    external_reference: 'order_998'
+  }
+});
+// Use response.init_point or response.sandbox_init_point
+```
+
+### 3. Pix Payment (Checkout Transparente)
+```typescript
+import { Payment } from 'mercadopago';
+const payment = new Payment(mpClient);
+const response = await payment.create({
+  body: {
+    transaction_amount: 10.00,
+    payment_method_id: 'pix',
+    payer: { email: 'buyer@email.com', identification: { type: 'CPF', number: '12345678909' } },
+    external_reference: 'order_999'
+  }
+});
+// Use response.point_of_interaction.transaction_data.qr_code_base64 and .qr_code
+```
+
+### 4. Webhook Verification
+Validate incoming Mercado Pago notifications using the HMAC signature:
+```typescript
+import crypto from 'crypto';
+export function verifySignature(xSignature: string, requestId: string, resourceId: string, secret: string): boolean {
+  if (!xSignature || !requestId || !resourceId || !secret) return false;
+  const parts = xSignature.split(',');
+  const ts = parts.find(p => p.startsWith('ts='))?.split('=')[1];
+  const v1 = parts.find(p => p.startsWith('v1='))?.split('=')[1];
+  if (!ts || !v1) return false;
+  const manifest = `id:${resourceId};request-id:${requestId};ts:${ts};`;
+  const calculatedHash = crypto.createHmac('sha256', secret).update(manifest).digest('hex');
+  return crypto.timingSafeEqual(Buffer.from(calculatedHash, 'hex'), Buffer.from(v1, 'hex'));
+}
+```
+
+---
+
+## Code Reference - Python
+
+### 1. Initialization
+```python
+import mercadopago
+sdk = mercadopago.SDK("ACCESS_TOKEN")
+```
+
+### 2. Checkout Pro Preference
+```python
+preference_response = sdk.preference().create({
+    "items": [{"id": "1", "title": "Product", "quantity": 1, "unit_price": 50.00, "currency_id": "BRL"}],
+    "back_urls": {"success": "https://site.com/ok", "failure": "https://site.com/fail"},
+    "notification_url": "https://api.com/webhook",
+    "external_reference": "order_py_1"
+})
+# preference_response["response"]["init_point"]
+```
+
+### 3. Webhook Signature Verification
+```python
+import hmac
+import hashlib
+def verify_signature(x_signature: str, request_id: str, resource_id: str, secret: str) -> bool:
+    if not all([x_signature, request_id, resource_id, secret]): return False
+    parts = x_signature.split(',')
+    ts = next((p.split('=')[1] for p in parts if p.startsWith('ts=')), None)
+    v1 = next((p.split('=')[1] for p in parts if p.startsWith('v1=')), None)
+    if not ts or not v1: return False
+    manifest = f"id:{resource_id};request-id:{request_id};ts:{ts};"
+    calculated = hmac.new(secret.encode('utf-8'), manifest.encode('utf-8'), hashlib.sha256).hexdigest()
+    return hmac.compare_digest(calculated, v1)
+```
+
+---
+
+## Critical Rules for Webhooks
+1. **HTTP 200 OK Immediately:** Return HTTP 200/201 status code immediately upon receiving the webhook request to prevent timeout retries from Mercado Pago.
+2. **Fetch Resource Details:** Never trust the payload data from the webhook POST body. Use the resource `id` to query `sdk.payment().get(id)` to retrieve the true transaction state (`approved`, `pending`, `rejected`).
+3. **Validate Signatures:** Use the HMAC validation shown above with the header `x-signature` and webhook secret token to safeguard endpoints against fraudulent payloads.

@@ -1,0 +1,283 @@
+---
+title: Webhooks & Segurança
+description: Como receber notificações do Mercado Pago e validar a assinatura HMAC nas 7 linguagens oficiais.
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+Quando o status de um pagamento muda (de pendente para aprovado, por exemplo), o Mercado Pago envia um **Webhook** (notificação POST) para o seu servidor. 
+
+**Nunca confie apenas no redirecionamento do frontend** para liberar o produto. O usuário pode simplesmente fechar a aba do navegador antes do redirecionamento acontecer.
+
+---
+
+## 3 Regras de ouro para Webhooks
+
+1. **Retorne HTTP 200 OK imediatamente:** A primeira coisa que seu endpoint de webhook deve fazer é responder sucesso pro Mercado Pago. Se você demorar pra responder (processando banco de dados ou enviando emails), o Mercado Pago vai achar que sua API caiu e vai ficar reenviando a mesma notificação, travando seu servidor.
+2. **Consulte a API deles antes de liberar o produto:** O webhook não envia o status do pagamento direto por segurança. Ele só te manda o ID da transação (`data.id`). Capture esse ID e faça um GET na API do Mercado Pago pra consultar os dados reais.
+3. **Valide a Assinatura (Evite fraudes):** O Mercado Pago envia no cabeçalho `x-signature` um hash HMAC-SHA256 gerado a partir de um segredo (gerado na tela de configuração de webhooks). Você deve recalcular esse hash e comparar para garantir que a requisição não é falsa.
+
+---
+
+## Lógica de Validação da Assinatura
+
+Abaixo está o algoritmo de validação em cada linguagem. Ele reconstrói a string de manifesto (`id:[payment_id];request-id:[header_x_request_id];ts:[header_timestamp];`) e calcula o hash HMAC.
+
+<Tabs>
+  <TabItem label="Node.js (TypeScript)">
+    ```typescript
+    import crypto from 'crypto';
+
+    export function verifySignature(
+      xSignature: string,
+      requestId: string,
+      resourceId: string,
+      webhookSecret: string
+    ): boolean {
+      if (!xSignature || !requestId || !resourceId || !webhookSecret) {
+        return false;
+      }
+
+      const parts = xSignature.split(',');
+      const ts = parts.find(p => p.startsWith('ts='))?.split('=')[1];
+      const v1 = parts.find(p => p.startsWith('v1='))?.split('=')[1];
+
+      if (!ts || !v1) return false;
+
+      // Monta o manifesto conforme a especificação do MP
+      const manifest = `id:${resourceId};request-id:${requestId};ts:${ts};`;
+
+      // Calcula o hash local com o segredo do webhook
+      const calculatedHash = crypto
+        .createHmac('sha256', webhookSecret)
+        .update(manifest)
+        .digest('hex');
+
+      // Compara os hashes em tempo constante pra evitar timing attacks
+      return crypto.timingSafeEqual(
+        Buffer.from(calculatedHash, 'hex'),
+        Buffer.from(v1, 'hex')
+      );
+    }
+    ```
+  </TabItem>
+
+  <TabItem label="Python">
+    ```python
+    import hmac
+    import hashlib
+
+    def verificar_assinatura(x_signature: str, request_id: str, resource_id: str, webhook_secret: str) -> bool:
+        if not all([x_signature, request_id, resource_id, webhook_secret]):
+            return False
+            
+        parts = x_signature.split(',')
+        ts = next((p.split('=')[1] for p in parts if p.startsWith('ts=')), None)
+        v1 = next((p.split('=')[1] for p in parts if p.startsWith('v1=')), None)
+        
+        if not ts or not v1:
+            return False
+            
+        manifest = f"id:{resource_id};request-id:{request_id};ts:{ts};"
+        
+        # Gera o hash local pra comparação
+        calculated_hash = hmac.new(
+            webhook_secret.encode('utf-8'),
+            manifest.encode('utf-8'),
+            hashlib.sha256
+        ).hexdigest()
+        
+        # Compara de forma segura (Timing Attack resistant)
+        return hmac.compare_digest(calculated_hash, v1)
+    ```
+  </TabItem>
+
+  <TabItem label="PHP">
+    ```php
+    <?php
+
+    function verificarAssinatura($xSignature, $requestId, $resourceId, $webhookSecret) {
+        if (!$xSignature || !$requestId || !$resourceId || !$webhookSecret) {
+            return false;
+        }
+
+        $parts = explode(',', $xSignature);
+        $ts = null;
+        $v1 = null;
+
+        foreach ($parts as $part) {
+            if (strpos($part, 'ts=') === 0) $ts = substr($part, 3);
+            if (strpos($part, 'v1=') === 0) $v1 = substr($part, 3);
+        }
+
+        if (!$ts || !$v1) return false;
+
+        $manifest = "id:{$resourceId};request-id:{$requestId};ts:{$ts};";
+        $calculatedHash = hash_hmac('sha256', $manifest, $webhookSecret);
+
+        // Compara hashes de forma segura
+        return hash_equals($calculatedHash, $v1);
+    }
+    ```
+  </TabItem>
+
+  <TabItem label="Java">
+    ```java
+    import javax.crypto.Mac;
+    import javax.crypto.spec.SecretKeySpec;
+    import java.security.MessageDigest;
+
+    public class Security {
+        public static boolean verificarAssinatura(
+            String xSignature, String requestId, String resourceId, String webhookSecret
+        ) {
+            if (xSignature == null || requestId == null || resourceId == null || webhookSecret == null) {
+                return false;
+            }
+
+            String ts = null;
+            String v1 = null;
+            for (String part : xSignature.split(",")) {
+                if (part.startsWith("ts=")) ts = part.split("=")[1];
+                if (part.startsWith("v1=")) v1 = part.split("=")[1];
+            }
+
+            if (ts == null || v1 == null) return false;
+
+            String manifest = String.format("id:%s;request-id:%s;ts:%s;", resourceId, requestId, ts);
+
+            try {
+                Mac hmac = Mac.getInstance("HmacSHA256");
+                SecretKeySpec secretKey = new SecretKeySpec(webhookSecret.getBytes("UTF-8"), "HmacSHA256");
+                hmac.init(secretKey);
+
+                byte[] hashBytes = hmac.doFinal(manifest.getBytes("UTF-8"));
+                StringBuilder calculatedHash = new StringBuilder();
+                for (byte b : hashBytes) {
+                    calculatedHash.append(String.format("%02x", b));
+                }
+
+                return MessageDigest.isEqual(
+                    calculatedHash.toString().getBytes("UTF-8"), 
+                    v1.getBytes("UTF-8")
+                );
+            } catch (Exception e) {
+                return false;
+            }
+        }
+    }
+    ```
+  </TabItem>
+
+  <TabItem label="Go">
+    ```go
+    package main
+
+    import (
+    	"crypto/hmac"
+    	"crypto/sha256"
+    	"encoding/hex"
+    	"fmt"
+    	"strings"
+    )
+
+    func VerificarAssinatura(xSignature, requestId, resourceId, webhookSecret string) bool {
+    	if xSignature == "" || requestId == "" || resourceId == "" || webhookSecret == "" {
+    		return false
+    	}
+
+    	var ts, v1 string
+    	for _, part := range strings.Split(xSignature, ",") {
+    		if strings.HasPrefix(part, "ts=") {
+    			ts = strings.Split(part, "=")[1]
+    		}
+    		if strings.HasPrefix(part, "v1=") {
+    			v1 = strings.Split(part, "=")[1]
+    		}
+    	}
+
+    	if ts == "" || v1 == "" {
+    		return false
+    	}
+
+    	manifest := fmt.Sprintf("id:%s;request-id:%s;ts:%s;", resourceId, requestId, ts)
+
+    	h := hmac.New(sha256.New, []byte(webhookSecret))
+    	h.Write([]byte(manifest))
+    	calculatedHash := hex.EncodeToString(h.Sum(nil))
+
+    	// Compara em tempo constante pra evitar timing attacks
+    	return hmac.Equal([]byte(calculatedHash), []byte(v1))
+    }
+    ```
+  </TabItem>
+
+  <TabItem label=".NET (C#)">
+    ```csharp
+    using System;
+    using System.Security.Cryptography;
+    using System.Text;
+
+    public class Security {
+        public static bool VerificarAssinatura(
+            string xSignature, string requestId, string resourceId, string webhookSecret
+        ) {
+            if (string.IsNullOrEmpty(xSignature) || string.IsNullOrEmpty(requestId) || 
+                string.IsNullOrEmpty(resourceId) || string.IsNullOrEmpty(webhookSecret)) {
+                return false;
+            }
+
+            string ts = null;
+            string v1 = null;
+            foreach (var part in xSignature.Split(',')) {
+                if (part.StartsWith("ts=")) ts = part.Split('=')[1];
+                if (part.StartsWith("v1=")) v1 = part.Split('=')[1];
+            }
+
+            if (ts == null || v1 == null) return false;
+
+            string manifest = $"id:{resourceId};request-id:{requestId};ts:{ts};";
+
+            using (var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(webhookSecret))) {
+                byte[] hashBytes = hmac.ComputeHash(Encoding.UTF8.GetBytes(manifest));
+                string calculatedHash = BitConverter.ToString(hashBytes).Replace("-", "").ToLower();
+
+                return CryptographicOperations.FixedTimeEquals(
+                    Encoding.UTF8.GetBytes(calculatedHash), 
+                    Encoding.UTF8.GetBytes(v1)
+                );
+            }
+        }
+    }
+    ```
+  </TabItem>
+
+  <TabItem label="Ruby">
+    ```ruby
+    require 'openssl'
+
+    def verificar_assinatura(x_signature, request_id, resource_id, webhook_secret)
+      return false if x_signature.nil? || request_id.nil? || resource_id.nil? || webhook_secret.nil?
+
+      parts = x_signature.split(',')
+      ts = parts.find { |p| p.start_with?('ts=') }&.split('=')&.last
+      v1 = parts.find { |p| p.start_with?('v1=') }&.split('=')&.last
+
+      return false if ts.nil? || v1.nil?
+
+      manifest = "id:#{resourceId};request-id:#{requestId};ts:#{ts};"
+
+      calculated_hash = OpenSSL::HMAC.hexdigest(
+        OpenSSL::Digest.new('sha256'),
+        webhook_secret,
+        manifest
+      )
+
+      # Compara os hashes de forma segura
+      ActiveSupport::SecurityUtils.secure_compare(calculated_hash, v1)
+    rescue
+      false
+    end
+    ```
+  </TabItem>
+</Tabs>

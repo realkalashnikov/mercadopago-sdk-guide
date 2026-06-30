@@ -1,0 +1,50 @@
+---
+title: Mercado Pago SDK (Sem Estresse)
+description: O guia não-oficial definitivo para integrar Pix, Cartão, Webhooks, OAuth e taxas de Marketplace nas 7 linguagens oficiais do Mercado Pago.
+template: splash
+hero:
+  tagline: Integre pagamentos de verdade sem perder a cabeça com a documentação oficial. Exemplos prontos, direto ao ponto e focados no que realmente importa.
+  actions:
+    - text: Começar agora
+      link: /introducao/
+      icon: right-arrow
+    - text: Ver Repositório
+      link: https://github.com/realkalashnikov/portfolio
+      icon: external
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+## Por que esse guia?
+
+A documentação oficial do Mercado Pago é confusa, cheia de páginas duplicadas e SDKs com exemplos desatualizados. Esse guia foi criado de dev para dev para resolver os problemas reais do dia a dia de integração.
+
+<CardGrid>
+	<Card title="As 7 SDKs Oficiais" icon="seti:javascript">
+		Códigos equivalentes e prontos em **Node.js, Python, PHP, Java, Go, .NET e Ruby**. Alterne de linguagem com um clique usando o seletor de abas.
+	</Card>
+	<Card title="OAuth 2.0 & Marketplace" icon="rocket">
+		Construa marketplaces de verdade. Permita que vendedores conectem suas contas ao seu app e cobre comissões (split) em cada transação de forma automática.
+	</Card>
+	<Card title="Segurança nos Webhooks" icon="shield">
+		Aprenda a blindar suas rotas de notificação. Nada de aceitar payloads falsos: validamos a assinatura HMAC (`x-signature`) em todas as linguagens.
+	</Card>
+	<Card title="Tipagem TypeScript Real" icon="document">
+		Chega de usar `as any` no backend. A SDK v2 do Node.js já vem tipada por padrão, e mostramos como estruturar o código sem gambiarras.
+	</Card>
+</CardGrid>
+
+---
+
+## O que vamos construir juntos?
+
+Diferente de tutoriais que só ensinam a gerar um Pix de mentira, aqui vamos passar por toda a jornada de integração para produção:
+
+1. **Configurar as credenciais** corretas no ambiente local.
+2. **Montar o fluxo do Checkout Pro** (com redirecionamento seguro).
+3. **Gerar Pix e Cartão de Crédito** direto na sua API (Checkout Transparente).
+4. **Validar e tratar notificações (Webhooks)** para liberar as vendas no banco de dados sem risco de fraude.
+5. **Configurar o Split de Pagamentos** para cobrar taxas sobre as vendas dos seus clientes.
+
+[👉 Ir para a Introdução](/introducao/)

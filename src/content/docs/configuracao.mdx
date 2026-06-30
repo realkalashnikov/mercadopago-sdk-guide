@@ -1,0 +1,170 @@
+---
+title: Configuração Inicial
+description: Como configurar as chaves e inicializar o SDK do Mercado Pago nas 7 linguagens oficiais.
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+Antes de escrever qualquer linha de código, você precisa ir no seu [Painel de Desenvolvedores](https://www.mercadopago.com.br/developers/panel) e pegar as credenciais do seu aplicativo:
+
+1. **Public Key:** Usada apenas no frontend (pra carregar os inputs de cartão ou bricks de pagamento).
+2. **Access Token:** Sua chave mestra do backend. **Nunca exponha essa chave no seu frontend**, salve-a sempre nas variáveis de ambiente do seu servidor (`.env`).
+
+```env
+MERCADOPAGO_ACCESS_TOKEN=APP_USR-xxxxxx-xxxxxx-xxxxxx
+```
+
+Abaixo, escolha sua linguagem pra ver como instalar o SDK oficial e inicializar o cliente de forma correta.
+
+---
+
+<Tabs>
+  <TabItem label="Node.js (TypeScript)">
+    ### Instalação
+    ```bash
+    npm install mercadopago
+    ```
+
+    ### Inicialização (SDK v2)
+    Na versão 2 do SDK, nós instanciamos um cliente de configuração e passamos ele pros construtores dos recursos (como pagamentos e preferências). Não existem mais aquelas chamadas estáticas globais da v1.
+
+    ```typescript
+    import { MercadoPagoConfig } from 'mercadopago';
+
+    export const mpClient = new MercadoPagoConfig({
+      accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN || '',
+      options: { timeout: 5000 } // 5s de timeout padrão pra chamada não ficar travada pra sempre
+    });
+    ```
+  </TabItem>
+
+  <TabItem label="Python">
+    ### Instalação
+    ```bash
+    pip install mercadopago
+    ```
+
+    ### Inicialização
+    Em Python, a instância principal do SDK gerencia o Access Token e fornece os objetos de recursos para fazermos as requisições.
+
+    ```python
+    import os
+    import mercadopago
+
+    # Inicializa o cliente do SDK puxando o token do ambiente
+    sdk = mercadopago.SDK(os.getenv("MERCADOPAGO_ACCESS_TOKEN"))
+    ```
+  </TabItem>
+
+  <TabItem label="PHP">
+    ### Instalação
+    ```bash
+    composer require mercadopago/dx-php
+    ```
+
+    ### Inicialização
+    A SDK de PHP v2 usa a classe estática `SDK` para definir o Access Token de forma global para a aplicação.
+
+    ```php
+    <?php
+    require_once 'vendor/autoload.php';
+
+    use MercadoPago\SDK;
+
+    // Define o Access Token de forma global
+    SDK::setAccessToken(getenv('MERCADOPAGO_ACCESS_TOKEN'));
+    ```
+  </TabItem>
+
+  <TabItem label="Java">
+    ### Instalação (Maven)
+    Adicione a dependência no seu `pom.xml`:
+    ```xml
+    <dependency>
+        <groupId>com.mercadopago</groupId>
+        <artifactId>sdk-java</artifactId>
+        <version>2.1.0</version>
+    </dependency>
+    ```
+
+    ### Inicialização
+    Assim como no PHP, em Java definimos o Access Token globalmente na classe estática `MercadoPagoConfig`.
+
+    ```java
+    import com.mercadopago.MercadoPagoConfig;
+
+    public class Main {
+        public static void main(String[] args) {
+            // Seta o token global no início da aplicação
+            MercadoPagoConfig.setAccessToken(System.getenv("MERCADOPAGO_ACCESS_TOKEN"));
+        }
+    }
+    ```
+  </TabItem>
+
+  <TabItem label="Go">
+    ### Instalação
+    ```bash
+    go get github.com/mercadopago/sdk-go
+    ```
+
+    ### Inicialização
+    Em Go, nós criamos um objeto de configuração com o token e usamos esse objeto para instanciar as APIs de recursos.
+
+    ```go
+    package main
+
+    import (
+    	"os"
+    	"github.com/mercadopago/sdk-go/pkg/config"
+    )
+
+    func main() {
+    	// Cria a config base que passaremos pros clients
+    	cfg, err := config.New(os.Getenv("MERCADOPAGO_ACCESS_TOKEN"))
+    	if err != nil {
+    		panic("Erro ao configurar SDK do Mercado Pago: " + err.Error())
+    	}
+    }
+    ```
+  </TabItem>
+
+  <TabItem label=".NET (C#)">
+    ### Instalação
+    ```bash
+    dotnet add package MercadoPago
+    ```
+
+    ### Inicialização
+    No .NET, configuramos o Access Token na inicialização do app usando a classe de configuração global.
+
+    ```csharp
+    using System;
+    using MercadoPago.Config;
+
+    class Program {
+        static void Main() {
+            // Seta as credenciais globais para o ciclo de vida do app
+            MercadoPagoConfig.AccessToken = Environment.GetEnvironmentVariable("MERCADOPAGO_ACCESS_TOKEN");
+        }
+    }
+    ```
+  </TabItem>
+
+  <TabItem label="Ruby">
+    ### Instalação
+    ```bash
+    gem install mercadopago-sdk
+    ```
+
+    ### Inicialização
+    Em Ruby, instanciamos a classe principal do SDK passando as credenciais.
+
+    ```ruby
+    require 'mercadopago'
+
+    # Instancia o SDK com o token de acesso do .env
+    sdk = Mercadopago::SDK.new(ENV['MERCADOPAGO_ACCESS_TOKEN'])
+    ```
+  </TabItem>
+</Tabs>

@@ -1,0 +1,237 @@
+---
+title: Checkout Transparente (Pix)
+description: Como receber pagamentos via Pix diretamente na sua API usando as 7 SDKs oficiais.
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+No **Checkout Transparente**, o cliente não sai da sua página para pagar. Para o **Pix**, sua API cria o pagamento no Mercado Pago e recebe de volta os dados do QR Code (imagem em Base64) e o código "Copia e Cola" (EMV). Basta devolver isso pro seu frontend renderizar para o usuário.
+
+Veja abaixo como gerar o pagamento via Pix em todas as linguagens.
+
+---
+
+<Tabs>
+  <TabItem label="Node.js (TypeScript)">
+    ```typescript
+    import { Payment } from 'mercadopago';
+    import { mpClient } from './configuracao';
+
+    const payment = new Payment(mpClient);
+
+    const result = await payment.create({
+      body: {
+        transaction_amount: 15.00,
+        description: 'Créditos do Jogo',
+        payment_method_id: 'pix',
+        payer: {
+          email: 'comprador@email.com',
+          identification: {
+            type: 'CPF',
+            number: '12345678909' // CPF ou CNPJ do pagador é obrigatório pra gerar Pix no MP
+          }
+        },
+        external_reference: 'pedido_id_2001'
+      }
+    });
+
+    // Pega as chaves do Pix dentro do objeto retornado
+    const qrCode = result.point_of_interaction?.transaction_data?.qr_code;
+    const qrCodeBase64 = result.point_of_interaction?.transaction_data?.qr_code_base64;
+
+    console.log('ID do Pagamento:', result.id);
+    console.log('Pix Copia e Cola:', qrCode);
+    ```
+  </TabItem>
+
+  <TabItem label="Python">
+    ```python
+    from configuracao import sdk
+
+    payment_data = {
+        "transaction_amount": 15.00,
+        "description": "Créditos do Jogo",
+        "payment_method_id": "pix",
+        "payer": {
+            "email": "comprador@email.com",
+            "identification": {
+                "type": "CPF",
+                "number": "12345678909"
+            }
+        },
+        "external_reference": "pedido_id_2001"
+    }
+
+    result = sdk.payment().create(payment_data)
+    resposta = result["response"]
+
+    poi = resposta.get("point_of_interaction", {})
+    tx_data = poi.get("transaction_data", {})
+
+    print("ID do Pagamento:", resposta.get("id"))
+    print("Pix Copia e Cola:", tx_data.get("qr_code"))
+    ```
+  </TabItem>
+
+  <TabItem label="PHP">
+    ```php
+    use MercadoPago\Client\Payment\PaymentClient;
+
+    $client = new PaymentClient();
+
+    $payment = $client->create([
+      "transaction_amount" => 15.00,
+      "description" => "Créditos do Jogo",
+      "payment_method_id" => "pix",
+      "payer" => [
+        "email" => "comprador@email.com",
+        "identification" => [
+          "type" => "CPF",
+          "number" => "12345678909"
+        ]
+      ],
+      "external_reference" => "pedido_id_2001"
+    ]);
+
+    $qrCode = $payment->point_of_interaction->transaction_data->qr_code;
+
+    echo "ID do Pagamento: " . $payment->id;
+    echo "Pix Copia e Cola: " . $qrCode;
+    ```
+  </TabItem>
+
+  <TabItem label="Java">
+    ```java
+    import com.mercadopago.client.payment.*;
+    import java.math.BigDecimal;
+
+    public class Exemplo {
+        public void criarPix() throws Exception {
+            PaymentClient client = new PaymentClient();
+
+            PaymentRequest request = PaymentRequest.builder()
+                .transactionAmount(new BigDecimal("15.00"))
+                .description("Créditos do Jogo")
+                .paymentMethodId("pix")
+                .payer(PaymentPayerRequest.builder()
+                    .email("comprador@email.com")
+                    .identification(IdentificationRequest.builder()
+                        .type("CPF")
+                        .number("12345678909")
+                        .build())
+                    .build())
+                .externalReference("pedido_id_2001")
+                .build();
+
+            Payment payment = client.create(request);
+
+            String qrCode = payment.getPointOfInteraction().getTransactionData().getQrCode();
+
+            System.out.println("ID do Pagamento: " + payment.getId());
+            System.out.println("Pix Copia e Cola: " + qrCode);
+        }
+    }
+    ```
+  </TabItem>
+
+  <TabItem label="Go">
+    ```go
+    package main
+
+    import (
+    	"context"
+    	"fmt"
+    	"github.com/mercadopago/sdk-go/pkg/payment"
+    )
+
+    func CriarPix(cfg config.Config) {
+    	client := payment.NewClient(cfg)
+
+    	request := payment.Request{
+    		TransactionAmount: 15.00,
+    		Description:       "Créditos do Jogo",
+    		PaymentMethodID:   "pix",
+    		Payer: &payment.PayerRequest{
+    			Email: "comprador@email.com",
+    			Identification: &payment.IdentificationRequest{
+    				Type:   "CPF",
+    				Number: "12345678909",
+    			},
+    		},
+    		ExternalReference: "pedido_id_2001",
+    	}
+
+    	pay, err := client.Create(context.Background(), request)
+    	if err != nil {
+    		panic("Erro ao processar Pix: " + err.Error())
+    	}
+
+    	qrCode := pay.PointOfInteraction.TransactionData.QrCode
+    	fmt.Println("ID do Pagamento:", pay.ID)
+    	fmt.Println("Pix Copia e Cola:", qrCode)
+    }
+    ```
+  </TabItem>
+
+  <TabItem label=".NET (C#)">
+    ```csharp
+    using System;
+    using System.Threading.Tasks;
+    using MercadoPago.Client.Payment;
+    using MercadoPago.Resource.Payment;
+
+    public class Exemplo {
+        public async Task CriarPix() {
+            var client = new PaymentClient();
+
+            var request = new PaymentCreateRequest {
+                TransactionAmount = 15.00m,
+                Description = "Créditos do Jogo",
+                PaymentMethodId = "pix",
+                Payer = new PaymentPayerRequest {
+                    Email = "comprador@email.com",
+                    Identification = new IdentificationRequest {
+                        Type = "CPF",
+                        Number = "12345678909"
+                    }
+                },
+                ExternalReference = "pedido_id_2001"
+            };
+
+            Payment payment = await client.CreateAsync(request);
+
+            string qrCode = payment.PointOfInteraction.TransactionData.QrCode;
+
+            Console.WriteLine($"ID do Pagamento: {payment.Id}");
+            Console.WriteLine($"Pix Copia e Cola: {qrCode}");
+        }
+    }
+    ```
+  </TabItem>
+
+  <TabItem label="Ruby">
+    ```ruby
+    payment_data = {
+      transaction_amount: 15.00,
+      description: 'Créditos do Jogo',
+      payment_method_id: 'pix',
+      payer: {
+        email: 'comprador@email.com',
+        identification: {
+          type: 'CPF',
+          number: '12345678909'
+        }
+      },
+      external_reference: 'pedido_id_2001'
+    }
+
+    result = sdk.payment.create(payment_data)
+    resposta = result[:response]
+
+    tx_data = resposta['point_of_interaction']['transaction_data']
+
+    puts "ID do Pagamento: #{resposta['id']}"
+    puts "Pix Copia e Cola: #{tx_data['qr_code']}"
+    ```
+  </TabItem>
+</Tabs>

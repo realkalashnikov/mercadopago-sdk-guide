@@ -1,0 +1,295 @@
+---
+title: Cobrando Taxas (Marketplace)
+description: Como cobrar taxas de intermediação em nome de vendedores nas 7 linguagens oficiais.
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+Depois de conectar a conta do vendedor via OAuth e salvar as chaves de acesso dele, você já pode vender em nome dele e cobrar sua taxa de intermediação (a comissão do marketplace) de forma totalmente automatizada.
+
+O Mercado Pago divide o valor na hora: a grana da venda vai pro vendedor, e a sua taxa cai direto na sua conta do Mercado Pago.
+
+---
+
+## O Segredo do Split de Pagamento
+Para aplicar a taxa, você deve fazer duas coisas obrigatórias:
+1. **Instanciar o SDK** usando o Access Token do **vendedor** (e não o do seu marketplace).
+2. **Adicionar o campo de taxa:**
+   - No **Checkout Pro**, use o campo `marketplace_fee` (no corpo da preferência).
+   - No **Checkout Transparente**, use o campo `application_fee` (no corpo do pagamento).
+
+---
+
+## Exemplos Práticos de Split
+
+Veja abaixo como configurar a taxa em cada tecnologia:
+
+<Tabs>
+  <TabItem label="Node.js (TypeScript)">
+    ```typescript
+    import { MercadoPagoConfig, Preference, Payment } from 'mercadopago';
+
+    // Inicializa o cliente usando o Access Token que você conseguiu no OAuth do vendedor
+    const sellerClient = new MercadoPagoConfig({
+      accessToken: 'APP_USR-SELLER-OAUTH-ACCESS-TOKEN'
+    });
+
+    /**
+     * OPÇÃO A: Criar link de redirecionamento (Checkout Pro) com comissão
+     */
+    const preference = new Preference(sellerClient);
+    const prefResult = await preference.create({
+      body: {
+        items: [{ title: 'Produto de Vendedor', quantity: 1, unit_price: 100.00, currency_id: 'BRL' }],
+        marketplace_fee: 10.00, // R$ 10,00 de comissão para a sua plataforma
+        external_reference: 'pedido_marketplace_001'
+      }
+    });
+    console.log('Checkout Link:', prefResult.init_point);
+
+    /**
+     * OPÇÃO B: Criar pagamento Pix (Checkout Transparente) com comissão
+     */
+    const payment = new Payment(sellerClient);
+    const payResult = await payment.create({
+      body: {
+        transaction_amount: 100.00,
+        payment_method_id: 'pix',
+        application_fee: 10.00, // R$ 10,00 de comissão para a sua plataforma
+        payer: { email: 'comprador@email.com' },
+        external_reference: 'pedido_marketplace_002'
+      }
+    });
+    console.log('Pix Criado com ID:', payResult.id);
+    ```
+  </TabItem>
+
+  <TabItem label="Python">
+    ```python
+    import mercadopago
+
+    # Inicializa o SDK usando o Access Token do vendedor
+    seller_sdk = mercadopago.SDK("APP_USR-SELLER-OAUTH-ACCESS-TOKEN")
+
+    # OPÇÃO A: Checkout Pro (Preferência) com comissão
+    preference_data = {
+        "items": [{"title": "Produto de Vendedor", "quantity": 1, "unit_price": 100.00, "currency_id": "BRL"}],
+        "marketplace_fee": 10.00,
+        "external_reference": "pedido_marketplace_001"
+    }
+    pref_result = seller_sdk.preference().create(preference_data)
+    print("Link Checkout:", pref_result["response"]["init_point"])
+
+    # OPÇÃO B: Checkout Transparente (Pix) com comissão
+    payment_data = {
+        "transaction_amount": 100.00,
+        "payment_method_id": "pix",
+        "application_fee": 10.00,
+        "payer": {"email": "comprador@email.com"},
+        "external_reference": "pedido_marketplace_002"
+    }
+    pay_result = seller_sdk.payment().create(payment_data)
+    print("ID do Pagamento Pix:", pay_result["response"]["id"])
+    ```
+  </TabItem>
+
+  <TabItem label="PHP">
+    ```php
+    use MercadoPago\SDK;
+    use MercadoPago\Client\Preference\PreferenceClient;
+    use MercadoPago\Client\Payment\PaymentClient;
+
+    // Configura o Access Token do vendedor obtido no OAuth
+    SDK::setAccessToken('APP_USR-SELLER-OAUTH-ACCESS-TOKEN');
+
+    // OPÇÃO A: Checkout Pro com marketplace_fee
+    $prefClient = new PreferenceClient();
+    $preference = $prefClient->create([
+        "items" => [["title" => "Produto de Vendedor", "quantity" => 1, "unit_price" => 100.00, "currency_id" => "BRL"]],
+        "marketplace_fee" => 10.00,
+        "external_reference" => "pedido_marketplace_001"
+    ]);
+    echo "Link Checkout: " . $preference->init_point;
+
+    // OPÇÃO B: Checkout Transparente com application_fee
+    $payClient = new PaymentClient();
+    $payment = $payClient->create([
+        "transaction_amount" => 100.00,
+        "payment_method_id" => "pix",
+        "application_fee" => 10.00,
+        "payer" => ["email" => "comprador@email.com"],
+        "external_reference" => "pedido_marketplace_002"
+    ]);
+    echo "ID do Pagamento: " . $payment->id;
+    ```
+  </TabItem>
+
+  <TabItem label="Java">
+    ```java
+    import com.mercadopago.MercadoPagoConfig;
+    import com.mercadopago.client.preference.*;
+    import com.mercadopago.client.payment.*;
+    import java.math.BigDecimal;
+    import java.util.ArrayList;
+
+    public class Marketplace {
+        public void processarSplit() throws Exception {
+            // Configura o token do vendedor globalmente
+            MercadoPagoConfig.setAccessToken("APP_USR-SELLER-OAUTH-ACCESS-TOKEN");
+
+            // OPÇÃO A: Checkout Pro
+            PreferenceClient prefClient = new PreferenceClient();
+            
+            PreferenceItemRequest item = PreferenceItemRequest.builder()
+                .title("Produto de Vendedor").quantity(1).unitPrice(new BigDecimal("100.00")).currencyId("BRL").build();
+            var items = new ArrayList<PreferenceItemRequest>();
+            items.add(item);
+
+            PreferenceRequest prefRequest = PreferenceRequest.builder()
+                .items(items)
+                .marketplaceFee(new BigDecimal("10.00"))
+                .externalReference("pedido_marketplace_001")
+                .build();
+
+            Preference preference = prefClient.create(prefRequest);
+            System.out.println("Link Checkout: " + preference.getInitPoint());
+
+            // OPÇÃO B: Checkout Transparente (Pix)
+            PaymentClient payClient = new PaymentClient();
+
+            PaymentRequest payRequest = PaymentRequest.builder()
+                .transactionAmount(new BigDecimal("100.00"))
+                .paymentMethodId("pix")
+                .applicationFee(new BigDecimal("10.00"))
+                .payer(PaymentPayerRequest.builder().email("comprador@email.com").build())
+                .externalReference("pedido_marketplace_002")
+                .build();
+
+            Payment payment = payClient.create(payRequest);
+            System.out.println("Pagamento Criado. ID: " + payment.getId());
+        }
+    }
+    ```
+  </TabItem>
+
+  <TabItem label="Go">
+    ```go
+    package main
+
+    import (
+    	"context"
+    	"fmt"
+    	"github.com/mercadopago/sdk-go/pkg/config"
+    	"github.com/mercadopago/sdk-go/pkg/payment"
+    	"github.com/mercadopago/sdk-go/pkg/preference"
+    )
+
+    func ProcessarSplit() {
+    	// Inicializa a configuração com o Access Token do VENDEDOR
+    	sellerCfg, _ := config.New("APP_USR-SELLER-OAUTH-ACCESS-TOKEN")
+
+    	// OPÇÃO A: Checkout Pro com MarketplaceFee
+    	prefClient := preference.NewClient(sellerCfg)
+    	pref, _ := prefClient.Create(context.Background(), preference.Request{
+    		Items: []preference.ItemRequest{
+    			{Title: "Produto de Vendedor", Quantity: 1, UnitPrice: 100.00, CurrencyID: "BRL"},
+    		},
+    		MarketplaceFee:    10.00,
+    		ExternalReference: "pedido_marketplace_001",
+    	})
+    	fmt.Println("Link Checkout:", pref.InitPoint)
+
+    	// OPÇÃO B: Checkout Transparente com ApplicationFee
+    	payClient := payment.NewClient(sellerCfg)
+    	pay, _ := payClient.Create(context.Background(), payment.Request{
+    		TransactionAmount: 100.00,
+    		PaymentMethodID:   "pix",
+    		ApplicationFee:    10.00,
+    		Payer:             &payment.PayerRequest{Email: "comprador@email.com"},
+    		ExternalReference: "pedido_marketplace_002",
+    	})
+    	fmt.Println("Pagamento Criado. ID:", pay.ID)
+    }
+    ```
+  </TabItem>
+
+  <TabItem label=".NET (C#)">
+    ```csharp
+    using System;
+    using System.Collections.Generic;
+    using System.Threading.Tasks;
+    using MercadoPago.Config;
+    using MercadoPago.Client.Preference;
+    using MercadoPago.Client.Payment;
+
+    public class Marketplace {
+        public async Task ProcessarSplit() {
+            // Configura o Access Token do vendedor
+            MercadoPagoConfig.AccessToken = "APP_USR-SELLER-OAUTH-ACCESS-TOKEN";
+
+            // OPÇÃO A: Checkout Pro
+            var prefClient = new PreferenceClient();
+            var prefRequest = new PreferenceRequest {
+                Items = new List<PreferenceItemRequest> {
+                    new PreferenceItemRequest { Title = "Produto de Vendedor", Quantity = 1, UnitPrice = 100.00m, CurrencyId = "BRL" }
+                },
+                MarketplaceFee = 10.00m,
+                ExternalReference = "pedido_marketplace_001"
+            };
+            var preference = await prefClient.CreateAsync(prefRequest);
+            Console.WriteLine($"Link Checkout: {preference.InitPoint}");
+
+            // OPÇÃO B: Checkout Transparente
+            var payClient = new PaymentClient();
+            var payRequest = new PaymentCreateRequest {
+                TransactionAmount = 100.00m,
+                PaymentMethodId = "pix",
+                ApplicationFee = 10.00m,
+                Payer = new PaymentPayerRequest { Email = "comprador@email.com" },
+                ExternalReference = "pedido_marketplace_002"
+            };
+            var payment = await payClient.CreateAsync(payRequest);
+            Console.WriteLine($"Pagamento Criado. ID: {payment.Id}");
+        }
+    }
+    ```
+  </TabItem>
+
+  <TabItem label="Ruby">
+    ```ruby
+    # Inicializa o SDK usando o Access Token do vendedor
+    seller_sdk = Mercadopago::SDK.new("APP_USR-SELLER-OAUTH-ACCESS-TOKEN")
+
+    # OPÇÃO A: Checkout Pro
+    preference_data = {
+      items: [{ title: 'Produto de Vendedor', quantity: 1, unit_price: 100.00, currency_id: 'BRL' }],
+      marketplace_fee: 10.00,
+      external_reference: 'pedido_marketplace_001'
+    }
+    pref_result = seller_sdk.preference.create(preference_data)
+    puts "Link Checkout: #{pref_result[:response]['init_point']}"
+
+    # OPÇÃO B: Checkout Transparente
+    payment_data = {
+      transaction_amount: 100.00,
+      payment_method_id: 'pix',
+      application_fee: 10.00,
+      payer: { email: 'comprador@email.com' },
+      external_reference: 'pedido_marketplace_002'
+    }
+    pay_result = seller_sdk.payment.create(payment_data)
+    puts "Pagamento Criado. ID: #{pay_result[:response]['id']}"
+    ```
+  </TabItem>
+</Tabs>
+
+---
+
+## ⚠️ O maior erro de quem integra taxas
+
+> [!CAUTION]
+> **Erro: "You cannot use application_fee with this payment"**
+>
+> Esse erro quebra a cabeça de muita gente. Ele acontece porque o dev tenta passar o campo `application_fee` ou `marketplace_fee` usando o Access Token **do próprio Marketplace** nas requisições.
+>
+> **Como resolver:** Certifique-se de que a instância do SDK/Configuração está usando o Access Token **do vendedor** (aquele token que você pegou e salvou no banco após ele aceitar o OAuth). O token do marketplace só é usado na hora de trocar o `code` no callback do OAuth.

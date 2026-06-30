@@ -1,0 +1,272 @@
+---
+title: Checkout Pro
+description: Como criar preferências de pagamento para redirecionar o usuário nas 7 linguagens oficiais.
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+No fluxo do **Checkout Pro**, seu backend envia os dados da compra para o Mercado Pago e cria uma **Preferência de Pagamento**. A API te devolve um link de redirecionamento (`init_point`). Você só precisa mandar o usuário para esse link para que ele escolha a forma de pagamento e finalize a compra.
+
+Abaixo, veja como gerar essa preferência em cada linguagem de forma direta.
+
+---
+
+<Tabs>
+  <TabItem label="Node.js (TypeScript)">
+    ```typescript
+    import { Preference } from 'mercadopago';
+    import { mpClient } from './configuracao';
+
+    const preference = new Preference(mpClient);
+
+    const result = await preference.create({
+      body: {
+        items: [
+          {
+            id: 'item-001',
+            title: 'Assinatura Premium',
+            quantity: 1,
+            unit_price: 29.90,
+            currency_id: 'BRL'
+          }
+        ],
+        back_urls: {
+          success: 'https://seusite.com/sucesso',
+          failure: 'https://seusite.com/falha',
+          pending: 'https://seusite.com/pendente'
+        },
+        auto_return: 'approved', // Manda de volta pro seu site assim que o pagamento for aprovado
+        notification_url: 'https://sua-api.com/webhooks/mercadopago', // ngrok ou url de produção
+        external_reference: 'pedido_id_10091' // ID do pedido no seu banco pra identificação rápida depois
+      }
+    });
+
+    // init_point é o link de produção. sandbox_init_point é o de testes
+    console.log('Checkout URL:', result.init_point);
+    console.log('Sandbox URL:', result.sandbox_init_point);
+    ```
+  </TabItem>
+
+  <TabItem label="Python">
+    ```python
+    from configuracao import sdk
+
+    preference_data = {
+        "items": [
+            {
+                "id": "item-001",
+                "title": "Assinatura Premium",
+                "quantity": 1,
+                "unit_price": 29.90,
+                "currency_id": "BRL"
+            }
+        ],
+        "back_urls": {
+            "success": "https://seusite.com/sucesso",
+            "failure": "https://seusite.com/falha",
+            "pending": "https://seusite.com/pendente"
+        },
+        "auto_return": "approved",
+        "notification_url": "https://sua-api.com/webhooks/mercadopago",
+        "external_reference": "pedido_id_10091"
+    }
+
+    result = sdk.preference().create(preference_data)
+    resposta = result["response"]
+
+    # Redireciona o usuário para um desses dois links
+    print("Checkout URL:", resposta["init_point"])
+    print("Sandbox URL:", resposta["sandbox_init_point"])
+    ```
+  </TabItem>
+
+  <TabItem label="PHP">
+    ```php
+    use MercadoPago\Client\Preference\PreferenceClient;
+
+    $client = new PreferenceClient();
+
+    $preference = $client->create([
+      "items" => [
+        [
+          "id" => "item-001",
+          "title" => "Assinatura Premium",
+          "quantity" => 1,
+          "unit_price" => 29.90,
+          "currency_id" => "BRL"
+        ]
+      ],
+      "back_urls" => [
+        "success" => "https://seusite.com/sucesso",
+        "failure" => "https://seusite.com/falha",
+        "pending" => "https://seusite.com/pendente"
+      ],
+      "auto_return" => "approved",
+      "notification_url" => "https://sua-api.com/webhooks/mercadopago",
+      "external_reference" => "pedido_id_10091"
+    ]);
+
+    echo "Checkout URL: " . $preference->init_point;
+    echo "Sandbox URL: " . $preference->sandbox_init_point;
+    ```
+  </TabItem>
+
+  <TabItem label="Java">
+    ```java
+    import com.mercadopago.client.preference.*;
+    import java.math.BigDecimal;
+    import java.util.ArrayList;
+    import java.util.List;
+
+    public class Exemplo {
+        public void criarPreferencia() throws Exception {
+            PreferenceClient client = new PreferenceClient();
+
+            List<PreferenceItemRequest> items = new ArrayList<>();
+            PreferenceItemRequest item = PreferenceItemRequest.builder()
+                .id("item-001")
+                .title("Assinatura Premium")
+                .quantity(1)
+                .unitPrice(new BigDecimal("29.90"))
+                .currencyId("BRL")
+                .build();
+            items.add(item);
+
+            PreferenceBackUrlsRequest backUrls = PreferenceBackUrlsRequest.builder()
+                .success("https://seusite.com/sucesso")
+                .failure("https://seusite.com/falha")
+                .pending("https://seusite.com/pendente")
+                .build();
+
+            PreferenceRequest request = PreferenceRequest.builder()
+                .items(items)
+                .backUrls(backUrls)
+                .autoReturn("approved")
+                .notificationUrl("https://sua-api.com/webhooks/mercadopago")
+                .externalReference("pedido_id_10091")
+                .build();
+
+            Preference preference = client.create(request);
+
+            System.out.println("Checkout URL: " + preference.getInitPoint());
+            System.out.println("Sandbox URL: " + preference.getSandboxInitPoint());
+        }
+    }
+    ```
+  </TabItem>
+
+  <TabItem label="Go">
+    ```go
+    package main
+
+    import (
+    	"context"
+    	"fmt"
+    	"github.com/mercadopago/sdk-go/pkg/preference"
+    )
+
+    func CriarPreferencia(cfg config.Config) {
+    	client := preference.NewClient(cfg)
+
+    	request := preference.Request{
+    		Items: []preference.ItemRequest{
+    			{
+    				ID:        "item-001",
+    				Title:     "Assinatura Premium",
+    				Quantity:  1,
+    				UnitPrice: 29.90,
+    				CurrencyID: "BRL",
+    			},
+    		},
+    		BackURLs: &preference.BackURLsRequest{
+    			Success: "https://seusite.com/sucesso",
+    			Failure: "https://seusite.com/falha",
+    			Pending: "https://seusite.com/pendente",
+    		},
+    		AutoReturn:        "approved",
+    		NotificationURL:   "https://sua-api.com/webhooks/mercadopago",
+    		ExternalReference: "pedido_id_10091",
+    	}
+
+    	pref, err := client.Create(context.Background(), request)
+    	if err != nil {
+    		panic("Erro ao gerar link de pagamento: " + err.Error())
+    	}
+
+    	fmt.Println("Checkout URL:", pref.InitPoint)
+    	fmt.Println("Sandbox URL:", pref.SandboxInitPoint)
+    }
+    ```
+  </TabItem>
+
+  <TabItem label=".NET (C#)">
+    ```csharp
+    using System;
+    using System.Collections.Generic;
+    using System.Threading.Tasks;
+    using MercadoPago.Client.Preference;
+    using MercadoPago.Resource.Preference;
+
+    public class Exemplo {
+        public async Task CriarPreferencia() {
+            var client = new PreferenceClient();
+
+            var request = new PreferenceRequest {
+                Items = new List<PreferenceItemRequest> {
+                    new PreferenceItemRequest {
+                        Id = "item-001",
+                        Title = "Assinatura Premium",
+                        Quantity = 1,
+                        UnitPrice = 29.90m,
+                        CurrencyId = "BRL"
+                    }
+                },
+                BackUrls = new PreferenceBackUrlsRequest {
+                    Success = "https://seusite.com/sucesso",
+                    Failure = "https://seusite.com/falha",
+                    Pending = "https://seusite.com/pendente"
+                },
+                AutoReturn = "approved",
+                NotificationUrl = "https://sua-api.com/webhooks/mercadopago",
+                ExternalReference = "pedido_id_10091"
+            };
+
+            Preference preference = await client.CreateAsync(request);
+
+            Console.WriteLine($"Checkout URL: {preference.InitPoint}");
+            Console.WriteLine($"Sandbox URL: {preference.SandboxInitPoint}");
+        }
+    }
+    ```
+  </TabItem>
+
+  <TabItem label="Ruby">
+    ```ruby
+    preference_data = {
+      items: [
+        {
+          id: 'item-001',
+          title: 'Assinatura Premium',
+          quantity: 1,
+          unit_price: 29.90,
+          currency_id: 'BRL'
+        }
+      ],
+      back_urls: {
+        success: 'https://seusite.com/sucesso',
+        failure: 'https://seusite.com/falha',
+        pending: 'https://seusite.com/pendente'
+      },
+      auto_return: 'approved',
+      notification_url: 'https://sua-api.com/webhooks/mercadopago',
+      external_reference: 'pedido_id_10091'
+    }
+
+    result = sdk.preference.create(preference_data)
+    resposta = result[:response]
+
+    puts "Checkout URL: #{resposta['init_point']}"
+    puts "Sandbox URL: #{resposta['sandbox_init_point']}"
+    ```
+  </TabItem>
+</Tabs>
