@@ -9,30 +9,35 @@ hero:
       link: /introducao/
       icon: right-arrow
     - text: Ver Repositório
-      link: https://github.com/realkalashnikov/portfolio
+      link: https://github.com/realkalashnikov/mercadopago-sdk-guide
       icon: external
       variant: minimal
 ---
 
-import { Card, CardGrid } from '@astrojs/starlight/components';
+import { Card, CardGrid } from "@astrojs/starlight/components";
 
 ## Por que esse guia?
 
 A documentação oficial do Mercado Pago é confusa, cheia de páginas duplicadas e SDKs com exemplos desatualizados. Esse guia foi criado de dev para dev para resolver os problemas reais do dia a dia de integração.
 
 <CardGrid>
-	<Card title="As 7 SDKs Oficiais" icon="seti:javascript">
-		Códigos equivalentes e prontos em **Node.js, Python, PHP, Java, Go, .NET e Ruby**. Alterne de linguagem com um clique usando o seletor de abas.
-	</Card>
-	<Card title="OAuth 2.0 & Marketplace" icon="rocket">
-		Construa marketplaces de verdade. Permita que vendedores conectem suas contas ao seu app e cobre comissões (split) em cada transação de forma automática.
-	</Card>
-	<Card title="Segurança nos Webhooks" icon="shield">
-		Aprenda a blindar suas rotas de notificação. Nada de aceitar payloads falsos: validamos a assinatura HMAC (`x-signature`) em todas as linguagens.
-	</Card>
-	<Card title="Tipagem TypeScript Real" icon="document">
-		Chega de usar `as any` no backend. A SDK v2 do Node.js já vem tipada por padrão, e mostramos como estruturar o código sem gambiarras.
-	</Card>
+  <Card title="As 7 SDKs Oficiais" icon="seti:javascript">
+    Códigos equivalentes e prontos em **Node.js, Python, PHP, Java, Go, .NET e
+    Ruby**. Alterne de linguagem com um clique usando o seletor de abas.
+  </Card>
+  <Card title="OAuth 2.0 & Marketplace" icon="rocket">
+    Construa marketplaces de verdade. Permita que vendedores conectem suas
+    contas ao seu app e cobre comissões (split) em cada transação de forma
+    automática.
+  </Card>
+  <Card title="Segurança nos Webhooks" icon="shield">
+    Aprenda a blindar suas rotas de notificação. Nada de aceitar payloads
+    falsos: validamos a assinatura HMAC (`x-signature`) em todas as linguagens.
+  </Card>
+  <Card title="Tipagem TypeScript Real" icon="document">
+    Chega de usar `as any` no backend. A SDK v2 do Node.js já vem tipada por
+    padrão, e mostramos como estruturar o código sem gambiarras.
+  </Card>
 </CardGrid>
 
 ---
