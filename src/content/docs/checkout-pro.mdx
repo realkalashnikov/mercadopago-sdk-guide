@@ -1,6 +1,6 @@
 ---
 title: Checkout Pro
-description: Como criar preferências de pagamento para redirecionar o usuário nas 7 linguagens oficiais.
+description: Como criar preferências de pagamento para redirecionar o usuário nas linguagens oficiais.
 ---
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
@@ -12,7 +12,7 @@ Abaixo, veja como gerar essa preferência em cada linguagem de forma direta.
 ---
 
 <Tabs>
-  <TabItem label="Node.js (TypeScript)">
+  <TabItem label="Node.js (TS / ESM)">
     ```typescript
     import { Preference } from 'mercadopago';
     import { mpClient } from './configuracao';
@@ -36,14 +36,51 @@ Abaixo, veja como gerar essa preferência em cada linguagem de forma direta.
           pending: 'https://seusite.com/pendente'
         },
         auto_return: 'approved', // Manda de volta pro seu site assim que o pagamento for aprovado
-        notification_url: 'https://sua-api.com/webhooks/mercadopago', // ngrok ou url de produção
-        external_reference: 'pedido_id_10091' // ID do pedido no seu banco pra identificação rápida depois
+        notification_url: 'https://sua-api.com/webhooks/mercadopago',
+        external_reference: 'pedido_id_10091' // ID do pedido no seu banco pra identificação rápida
       }
     });
 
-    // init_point é o link de produção. sandbox_init_point é o de testes
     console.log('Checkout URL:', result.init_point);
     console.log('Sandbox URL:', result.sandbox_init_point);
+    ```
+  </TabItem>
+
+  <TabItem label="Node.js (CommonJS)">
+    ```javascript
+    const { Preference } = require('mercadopago');
+    const { mpClient } = require('./configuracao');
+
+    const preference = new Preference(mpClient);
+
+    preference.create({
+      body: {
+        items: [
+          {
+            id: 'item-001',
+            title: 'Assinatura Premium',
+            quantity: 1,
+            unit_price: 29.90,
+            currency_id: 'BRL'
+          }
+        ],
+        back_urls: {
+          success: 'https://seusite.com/sucesso',
+          failure: 'https://seusite.com/falha',
+          pending: 'https://seusite.com/pendente'
+        },
+        auto_return: 'approved',
+        notification_url: 'https://sua-api.com/webhooks/mercadopago',
+        external_reference: 'pedido_id_10091'
+      }
+    })
+    .then((result) => {
+      console.log('Checkout URL:', result.init_point);
+      console.log('Sandbox URL:', result.sandbox_init_point);
+    })
+    .catch((error) => {
+      console.error('Erro ao gerar preferência:', error);
+    });
     ```
   </TabItem>
 
@@ -226,7 +263,7 @@ Abaixo, veja como gerar essa preferência em cada linguagem de forma direta.
                     Failure = "https://seusite.com/falha",
                     Pending = "https://seusite.com/pendente"
                 },
-                AutoReturn = "approved",
+                autoReturn = "approved",
                 NotificationUrl = "https://sua-api.com/webhooks/mercadopago",
                 ExternalReference = "pedido_id_10091"
             };

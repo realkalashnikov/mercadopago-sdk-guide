@@ -35,6 +35,7 @@ export default defineConfig({
 					label: 'Recursos',
 					items: [
 						{ label: 'Clonar Exemplos', slug: 'exemplos' },
+						{ label: 'Como Contribuir', slug: 'contribuir' },
 					],
 				},
 			],

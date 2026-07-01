@@ -1,6 +1,6 @@
 ---
 title: Configuração Inicial
-description: Como configurar as chaves e inicializar o SDK do Mercado Pago nas 7 linguagens oficiais.
+description: Como instalar e inicializar a SDK do Mercado Pago nas linguagens e ambientes oficiais.
 ---
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
@@ -14,18 +14,18 @@ Antes de escrever qualquer linha de código, você precisa ir no seu [Painel de 
 MERCADOPAGO_ACCESS_TOKEN=APP_USR-xxxxxx-xxxxxx-xxxxxx
 ```
 
-Abaixo, escolha sua linguagem pra ver como instalar o SDK oficial e inicializar o cliente de forma correta.
+Abaixo, escolha seu ambiente pra ver como instalar o SDK oficial e inicializar o cliente de forma correta.
 
 ---
 
 <Tabs>
-  <TabItem label="Node.js (TypeScript)">
+  <TabItem label="Node.js (TS / ESM)">
     ### Instalação
     ```bash
     npm install mercadopago
     ```
 
-    ### Inicialização (SDK v2)
+    ### Inicialização (TypeScript / ES Modules)
     Na versão 2 do SDK, nós instanciamos um cliente de configuração e passamos ele pros construtores dos recursos (como pagamentos e preferências). Não existem mais aquelas chamadas estáticas globais da v1.
 
     ```typescript
@@ -35,6 +35,27 @@ Abaixo, escolha sua linguagem pra ver como instalar o SDK oficial e inicializar 
       accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN || '',
       options: { timeout: 5000 } // 5s de timeout padrão pra chamada não ficar travada pra sempre
     });
+    ```
+  </TabItem>
+
+  <TabItem label="Node.js (CommonJS)">
+    ### Instalação
+    ```bash
+    npm install mercadopago
+    ```
+
+    ### Inicialização (JavaScript / require)
+    Se você está usando Node.js tradicional com CommonJS, utilize o `require` para obter o construtor da configuração.
+
+    ```javascript
+    const { MercadoPagoConfig } = require('mercadopago');
+
+    const mpClient = new MercadoPagoConfig({
+      accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN || '',
+      options: { timeout: 5000 }
+    });
+
+    module.exports = { mpClient };
     ```
   </TabItem>
 

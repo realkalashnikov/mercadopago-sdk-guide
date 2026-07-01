@@ -1,6 +1,6 @@
 ---
 title: Checkout Transparente (Pix)
-description: Como receber pagamentos via Pix diretamente na sua API usando as 7 SDKs oficiais.
+description: Como receber pagamentos via Pix diretamente na sua API usando as linguagens oficiais.
 ---
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
@@ -12,7 +12,7 @@ Veja abaixo como gerar o pagamento via Pix em todas as linguagens.
 ---
 
 <Tabs>
-  <TabItem label="Node.js (TypeScript)">
+  <TabItem label="Node.js (TS / ESM)">
     ```typescript
     import { Payment } from 'mercadopago';
     import { mpClient } from './configuracao';
@@ -41,6 +41,39 @@ Veja abaixo como gerar o pagamento via Pix em todas as linguagens.
 
     console.log('ID do Pagamento:', result.id);
     console.log('Pix Copia e Cola:', qrCode);
+    ```
+  </TabItem>
+
+  <TabItem label="Node.js (CommonJS)">
+    ```javascript
+    const { Payment } = require('mercadopago');
+    const { mpClient } = require('./configuracao');
+
+    const payment = new Payment(mpClient);
+
+    payment.create({
+      body: {
+        transaction_amount: 15.00,
+        description: 'Créditos do Jogo',
+        payment_method_id: 'pix',
+        payer: {
+          email: 'comprador@email.com',
+          identification: {
+            type: 'CPF',
+            number: '12345678909'
+          }
+        },
+        external_reference: 'pedido_id_2001'
+      }
+    })
+    .then((result) => {
+      const qrCode = result.point_of_interaction?.transaction_data?.qr_code;
+      console.log('ID do Pagamento:', result.id);
+      console.log('Pix Copia e Cola:', qrCode);
+    })
+    .catch((error) => {
+      console.error('Erro no Pix:', error);
+    });
     ```
   </TabItem>
 

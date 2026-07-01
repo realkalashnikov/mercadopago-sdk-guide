@@ -1,6 +1,6 @@
 ---
 title: Webhooks & Segurança
-description: Como receber notificações do Mercado Pago e validar a assinatura HMAC nas 7 linguagens oficiais.
+description: Como receber notificações do Mercado Pago e validar a assinatura HMAC nas linguagens oficiais.
 ---
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
@@ -24,7 +24,7 @@ Quando o status de um pagamento muda (de pendente para aprovado, por exemplo), o
 Abaixo está o algoritmo de validação em cada linguagem. Ele reconstrói a string de manifesto (`id:[payment_id];request-id:[header_x_request_id];ts:[header_timestamp];`) e calcula o hash HMAC.
 
 <Tabs>
-  <TabItem label="Node.js (TypeScript)">
+  <TabItem label="Node.js (TS / ESM)">
     ```typescript
     import crypto from 'crypto';
 
@@ -59,6 +59,38 @@ Abaixo está o algoritmo de validação em cada linguagem. Ele reconstrói a str
         Buffer.from(v1, 'hex')
       );
     }
+    ```
+  </TabItem>
+
+  <TabItem label="Node.js (CommonJS)">
+    ```javascript
+    const crypto = require('crypto');
+
+    function verifySignature(xSignature, requestId, resourceId, webhookSecret) {
+      if (!xSignature || !requestId || !resourceId || !webhookSecret) {
+        return false;
+      }
+
+      const parts = xSignature.split(',');
+      const ts = parts.find(p => p.startsWith('ts='))?.split('=')[1];
+      const v1 = parts.find(p => p.startsWith('v1='))?.split('=')[1];
+
+      if (!ts || !v1) return false;
+
+      const manifest = `id:${resourceId};request-id:${requestId};ts:${ts};`;
+
+      const calculatedHash = crypto
+        .createHmac('sha256', webhookSecret)
+        .update(manifest)
+        .digest('hex');
+
+      return crypto.timingSafeEqual(
+        Buffer.from(calculatedHash, 'hex'),
+        Buffer.from(v1, 'hex')
+      );
+    }
+
+    module.exports = { verifySignature };
     ```
   </TabItem>
 

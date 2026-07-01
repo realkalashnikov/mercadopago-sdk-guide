@@ -1,6 +1,6 @@
 ---
 title: Cobrando Taxas (Marketplace)
-description: Como cobrar taxas de intermediação em nome de vendedores nas 7 linguagens oficiais.
+description: Como cobrar taxas de intermediação em nome de vendedores nas linguagens oficiais.
 ---
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
@@ -25,7 +25,7 @@ Para aplicar a taxa, você deve fazer duas coisas obrigatórias:
 Veja abaixo como configurar a taxa em cada tecnologia:
 
 <Tabs>
-  <TabItem label="Node.js (TypeScript)">
+  <TabItem label="Node.js (TS / ESM)">
     ```typescript
     import { MercadoPagoConfig, Preference, Payment } from 'mercadopago';
 
@@ -61,6 +61,47 @@ Veja abaixo como configurar a taxa em cada tecnologia:
       }
     });
     console.log('Pix Criado com ID:', payResult.id);
+    ```
+  </TabItem>
+
+  <TabItem label="Node.js (CommonJS)">
+    ```javascript
+    const { MercadoPagoConfig, Preference, Payment } = require('mercadopago');
+
+    // Inicializa o SDK usando o Access Token do vendedor
+    const sellerClient = new MercadoPagoConfig({
+      accessToken: 'APP_USR-SELLER-OAUTH-ACCESS-TOKEN'
+    });
+
+    // OPÇÃO A: Checkout Pro com marketplace_fee
+    const preference = new Preference(sellerClient);
+    preference.create({
+      body: {
+        items: [{ title: 'Produto de Vendedor', quantity: 1, unit_price: 100.00, currency_id: 'BRL' }],
+        marketplace_fee: 10.00,
+        external_reference: 'pedido_marketplace_001'
+      }
+    })
+    .then((result) => {
+      console.log('Checkout Link:', result.init_point);
+    })
+    .catch(console.error);
+
+    // OPÇÃO B: Checkout Transparente com application_fee
+    const payment = new Payment(sellerClient);
+    payment.create({
+      body: {
+        transaction_amount: 100.00,
+        payment_method_id: 'pix',
+        application_fee: 10.00,
+        payer: { email: 'comprador@email.com' },
+        external_reference: 'pedido_marketplace_002'
+      }
+    })
+    .then((result) => {
+      console.log('Pix Criado com ID:', result.id);
+    })
+    .catch(console.error);
     ```
   </TabItem>
 
